@@ -95,7 +95,7 @@ def create_app() -> Flask:
         SWAGGER_URL, API_URL, config={"app_name": "Корпоративный Твиттер API"}
     )
 
-    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+    application.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
     return application
 
