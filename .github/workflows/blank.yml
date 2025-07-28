@@ -1,0 +1,33 @@
+name: Python CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.13
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run black check
+        run: black --diff --check src/
+
+      - name: Run isort check
+        run: isort --check-only --profile black src/
+
+      - name: Run flake8
+        run: flake8 src/
+
+      - name: Run tests
+        run: PYTHONPATH=$(pwd) pytest tests
