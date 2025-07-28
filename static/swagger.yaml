@@ -1,0 +1,431 @@
+openapi: 3.0.3
+info:
+  title: Корпоративный микроблоггинг сервис API
+  version: "1.0.0"
+  description: API для работы с твитами, медиа, лайками и подписками в корпоративной сети.
+servers:
+  - url: http://localhost:8000
+    description: Локальный сервер разработки
+
+components:
+  parameters:
+    ApiKeyHeader:
+      name: api-key
+      in: header
+      description: Ключ пользователя для авторизации
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Media:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        filename:
+          type: string
+          example: "image.png"
+        path:
+          type: string
+          example: "static/uploads/image.png"
+
+    Tweet:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        content:
+          type: string
+          example: "Пример твита"
+        attachments:
+          type: array
+          items:
+            type: string
+            example: "/static/uploads/image.png"
+        author:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 2
+            name:
+              type: string
+              example: "Elena"
+        likes:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: "Ivan"
+
+    UserShort:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        name:
+          type: string
+          example: "Alex"
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        name:
+          type: string
+          example: "Alex"
+        followers:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserShort'
+        following:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserShort'
+
+    CreateTweetRequest:
+      type: object
+      properties:
+        tweet_data:
+          type: string
+          description: "Текст твита, до 280 символов"
+          example: "Привет, корпоративный мир!"
+        tweet_media_ids:
+          type: array
+          items:
+            type: integer
+          description: "Список ID медиа файлов (опционально)"
+      required:
+        - tweet_data
+
+    ResultResponse:
+      type: object
+      properties:
+        result:
+          type: boolean
+          example: true
+
+    TweetIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultResponse'
+        - type: object
+          properties:
+            tweet_id:
+              type: integer
+              example: 42
+
+    MediaIdResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultResponse'
+        - type: object
+          properties:
+            media_id:
+              type: integer
+              example: 3
+
+    TweetsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultResponse'
+        - type: object
+          properties:
+            tweets:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tweet'
+
+    UserProfileResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultResponse'
+        - type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/UserProfile'
+
+    ErrorResponse:
+      type: object
+      properties:
+        result:
+          type: boolean
+          example: false
+        error_type:
+          type: string
+          example: "NotFoundError"
+        error_message:
+          type: string
+          example: "Твит не найден"
+
+paths:
+  /api/tweets:
+    post:
+      summary: Создать новый твит
+      description: Создаёт твит с текстом и опциональными медиа.
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+      requestBody:
+        description: Данные твита
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTweetRequest'
+      responses:
+        '201':
+          description: Твит успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TweetIdResponse'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Получить ленту твитов текущего пользователя и подписок
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+      responses:
+        '200':
+          description: Лента твитов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TweetsResponse'
+        '400':
+          description: Ошибка авторизации или параметров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/medias:
+    post:
+      summary: Загрузить медиа-файл (картинку)
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+      requestBody:
+        description: Файл для загрузки
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Медиа успешно загружено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaIdResponse'
+        '400':
+          description: Ошибка валидации файла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tweets/{tweet_id}:
+    delete:
+      summary: Удалить свой твит по ID
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: tweet_id
+          in: path
+          description: ID удаляемого твита
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Твит успешно удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+        '403':
+          description: Попытка удалить чужой твит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Твит не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tweets/{tweet_id}/likes:
+    post:
+      summary: Поставить лайк на твит
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: tweet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Лайк успешно установлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+        '404':
+          description: Твит не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Убрать лайк с твита
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: tweet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Лайк успешно удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+        '404':
+          description: Твит не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{user_id}/follow:
+    post:
+      summary: Подписаться на пользователя
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: user_id
+          in: path
+          description: ID пользователя для подписки
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Подписка оформлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+        '400':
+          description: Попытка подписаться на себя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Отписаться от пользователя
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: user_id
+          in: path
+          description: ID пользователя для отписки
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Отписка выполнена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me:
+    get:
+      summary: Получить профиль текущего пользователя
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+      responses:
+        '200':
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Неавторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{user_id}:
+    get:
+      summary: Получить профиль пользователя по ID
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - name: user_id
+          in: path
+          description: ID пользователя
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
