@@ -45,10 +45,14 @@ Backend: Flask
 bash
 git clone <URL вашего репозитория>
 cd <папка проекта>
+
+Заполните данные в .env
+
 Запустите сервис с помощью Docker Compose:
 
 bash
 docker-compose up -d
+
 Проверьте, что сервис запустился успешно:
 
 API будет доступен по адресу http://localhost:5000
