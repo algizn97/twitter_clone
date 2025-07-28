@@ -2,9 +2,10 @@ import logging.config
 import os
 from functools import wraps
 from typing import Tuple, Union
-from sqlalchemy.exc import SQLAlchemyError
+
 from flask import Blueprint, Response, g, jsonify, render_template, request
 from logger_helper.logger_helper import LOGGING_CONFIG
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
 from src.models import User
