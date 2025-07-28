@@ -4,10 +4,10 @@ from functools import wraps
 from typing import Tuple, Union
 
 from flask import Blueprint, Response, g, jsonify, render_template, request
-from logger_helper.logger_helper import LOGGING_CONFIG
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
+from logger_helper.logger_helper import LOGGING_CONFIG
 from src.models import User
 from src.services import (
     create_tweet,
